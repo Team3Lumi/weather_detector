@@ -1,0 +1,53 @@
+{
+    "latitude": 21.0,
+    "longitude": 105.75,
+    "generationtime_ms": 0.08225440979003906,
+    "utc_offset_seconds": 25200,
+    "timezone": "Asia/Bangkok",
+    "timezone_abbreviation": "GMT+7",
+    "elevation": 13.0,
+    "daily_units": {
+        "time": "iso8601",
+        "temperature_2m_max": "°C",
+        "precipitation_probability_mean": "%",
+        "weathercode": "wmo code"
+    },
+    "daily": {
+        "time": [
+            "2025-07-22",
+            "2025-07-23",
+            "2025-07-24",
+            "2025-07-25",
+            "2025-07-26",
+            "2025-07-27",
+            "2025-07-28"
+        ],
+        "temperature_2m_max": [
+            27.9,
+            30.6,
+            27.7,
+            31.0,
+            31.7,
+            33.0,
+            34.6
+        ],
+        "precipitation_probability_mean": [
+            81,
+            57,
+            87,
+            74,
+            48,
+            31,
+            16
+        ],
+        "weathercode": [
+            95,
+            95,
+            95,
+            95,
+            80,
+            45,
+            45
+        ]
+    }
+}
