@@ -1,0 +1,46 @@
+#include <stdio.h>
+#include "esp_log.h"
+#include "esp_http_client.h"
+#include "cJSON.h"
+
+#define TAG "WEATHER"
+
+static void http_get_weather() {
+    esp_http_client_config_t config = {
+        .url = "https://api.open-meteo.com/v1/forecast?latitude=21.0&longitude=105.75&current_weather=true",
+        .method = HTTP_METHOD_GET,
+    };
+
+    esp_http_client_handle_t client = esp_http_client_init(&config);
+
+    esp_err_t err = esp_http_client_perform(client);
+    if (err == ESP_OK) {
+        char buffer[512];
+        int len = esp_http_client_read_response(client, buffer, sizeof(buffer));
+        if (len > 0) {
+            buffer[len] = '\0';  // Đảm bảo kết thúc chuỗi
+
+            // Parse JSON
+            cJSON *root = cJSON_Parse(buffer);
+            if (root) {
+                cJSON *cw = cJSON_GetObjectItem(root, "current_weather");
+                if (cw) {
+                    double temp = cJSON_GetObjectItem(cw, "temperature")->valuedouble;
+                    ESP_LOGI(TAG, "Nhiệt độ hiện tại: %.1f °C", temp);
+                }
+                cJSON_Delete(root);
+            } else {
+                ESP_LOGE(TAG, "Lỗi phân tích JSON");
+            }
+        }
+    } else {
+        ESP_LOGE(TAG, "HTTP request failed: %s", esp_err_to_name(err));
+    }
+
+    esp_http_client_cleanup(client);
+}
+
+extern "C" void app_main() {
+    // ... init WiFi 
+    http_get_weather();
+}
