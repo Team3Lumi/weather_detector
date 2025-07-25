@@ -7,7 +7,8 @@
 
 static void http_get_weather() {
     esp_http_client_config_t config = {
-        .url = "https://api.open-meteo.com/v1/forecast?latitude=21.0&longitude=105.75&current_weather=true",
+        .url = "https://api.open-meteo.com/v1/forecast?latitude=21&longitude=105.75&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,relative_humidity_2m_mean&timezone=auto
+",
         .method = HTTP_METHOD_GET,
     };
 
