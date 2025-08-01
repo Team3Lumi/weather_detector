@@ -3,10 +3,10 @@
 #include "freertos/task.h"
 #include "esp_log.h"
 #include "esp_http_client.h"
-
+#include "http.h"
 
 static const char* TAG = "HTTP_EXAMPLE";
-#define GET_URL "http://httpbin.org/get"
+
 
 static void http_get_task(void *pvParameters)
 {
