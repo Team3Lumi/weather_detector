@@ -14,6 +14,10 @@
 
 #define WEATHER_API_URL "https://api.open-meteo.com/v1/forecast?latitude=21.0&longitude=105.75&daily=temperature_2m_max,precipitation_probability_mean,weathercode&timezone=auto"
 
+
+#define RESP_MAX_BYTES   (64 * 1024)
+#define FORECAST_DAYS    7
+
 void get_weather_forecast(void);
 
 #endif

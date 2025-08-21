@@ -1,16 +1,8 @@
 
 #include "http.h"
-
-
+#include "spiffs_store.h"
 
 static const char *TAG = "weather";
-
-// static esp_err_t _http_event_handler(esp_http_client_event_t *evt)
-// {
-//     return ESP_OK;
-// }
-
-#define RESP_MAX_BYTES   (64 * 1024)
 
 void get_weather_forecast(void)
 {
@@ -32,7 +24,7 @@ void get_weather_forecast(void)
     esp_http_client_set_header(c, "Accept-Encoding", "identity");
     esp_http_client_set_header(c, "User-Agent", "ESP32-IDF/WeatherStation");
 
-    // QUAN TRỌNG: dùng open + fetch_headers + read (đừng chỉ perform rồi read)
+    // Mở kết nối và đọc theo stream (ổn định với chunked)
     esp_err_t err = esp_http_client_open(c, 0);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "open failed: %s", esp_err_to_name(err));
@@ -40,11 +32,11 @@ void get_weather_forecast(void)
         return;
     }
 
-    int64_t hdr_len = esp_http_client_fetch_headers(c); // có thể -1
+    (void)esp_http_client_fetch_headers(c);
     int status = esp_http_client_get_status_code(c);
-    ESP_LOGI(TAG, "HTTP GET Status = %d, header_len = %lld", status, hdr_len);
+    ESP_LOGI(TAG, "HTTP GET Status = %d", status);
 
-    // Đọc body theo chunk
+    // Đọc body
     size_t cap = 4096, len = 0;
     char *resp = (char*) malloc(cap);
     if (!resp) {
@@ -95,15 +87,16 @@ void get_weather_forecast(void)
     esp_http_client_cleanup(c);
 
     ESP_LOGI(TAG, "Total bytes: %u", (unsigned)len);
-    ESP_LOGI(TAG, "Peek: %.*s", (int)((len > 120) ? 120 : len), resp);
+    // (Tuỳ chọn) Lưu JSON vào SPIFFS để khởi động sau đọc ra ngay:
+    spiffs_save_json(resp, len);
 
-    if (len == 0) {  // không có body → thoát sớm
+    if (len == 0) {
         ESP_LOGE(TAG, "Empty body");
         free(resp);
         return;
     }
 
-    // Parse JSON an toàn theo độ dài
+    // Parse JSON đủ 7 ngày
     cJSON *json = cJSON_ParseWithLength(resp, len);
     if (!json) {
         ESP_LOGE(TAG, "Failed to parse JSON");
@@ -112,27 +105,47 @@ void get_weather_forecast(void)
     }
 
     cJSON *daily = cJSON_GetObjectItemCaseSensitive(json, "daily");
-    if (cJSON_IsObject(daily)) {
-        cJSON *temp_max    = cJSON_GetObjectItemCaseSensitive(daily, "temperature_2m_max");
-        cJSON *rain_prob   = cJSON_GetObjectItemCaseSensitive(daily, "precipitation_probability_mean");
-        cJSON *weathercode = cJSON_GetObjectItemCaseSensitive(daily, "weathercode");
-        if (cJSON_IsArray(temp_max) && cJSON_IsArray(rain_prob) && cJSON_IsArray(weathercode)) {
-            cJSON *t0 = cJSON_GetArrayItem(temp_max, 0);
-            cJSON *r0 = cJSON_GetArrayItem(rain_prob, 0);
-            cJSON *w0 = cJSON_GetArrayItem(weathercode, 0);
-            if (cJSON_IsNumber(t0) && cJSON_IsNumber(r0) && cJSON_IsNumber(w0)) {
-                ESP_LOGI(TAG, "--- Forecast (day 0) ---");
-                ESP_LOGI(TAG, "Temp max: %.1f C", t0->valuedouble);
-                ESP_LOGI(TAG, "Rain prob: %.1f %%", r0->valuedouble);
-                ESP_LOGI(TAG, "Weather code: %d", w0->valueint);
-            } else {
-                ESP_LOGW(TAG, "Unexpected types in arrays[0]");
-            }
-        } else {
-            ESP_LOGW(TAG, "Missing arrays in 'daily'");
-        }
-    } else {
+    if (!cJSON_IsObject(daily)) {
         ESP_LOGW(TAG, "Missing 'daily' object");
+        cJSON_Delete(json); free(resp);
+        return;
+    }
+
+    cJSON *times      = cJSON_GetObjectItemCaseSensitive(daily, "time");
+    cJSON *temp_max   = cJSON_GetObjectItemCaseSensitive(daily, "temperature_2m_max");
+    cJSON *rain_prob  = cJSON_GetObjectItemCaseSensitive(daily, "precipitation_probability_mean");
+    cJSON *weathercode= cJSON_GetObjectItemCaseSensitive(daily, "weathercode");
+
+    if (!cJSON_IsArray(times) || !cJSON_IsArray(temp_max) ||
+        !cJSON_IsArray(rain_prob) || !cJSON_IsArray(weathercode)) {
+        ESP_LOGW(TAG, "Missing expected arrays in 'daily'");
+        cJSON_Delete(json); free(resp);
+        return;
+    }
+
+    int n = cJSON_GetArraySize(times);
+    // đảm bảo đồng bộ các mảng
+    n = (n < cJSON_GetArraySize(temp_max))    ? n : cJSON_GetArraySize(temp_max);
+    n = (n < cJSON_GetArraySize(rain_prob))   ? n : cJSON_GetArraySize(rain_prob);
+    n = (n < cJSON_GetArraySize(weathercode)) ? n : cJSON_GetArraySize(weathercode);
+    if (n > FORECAST_DAYS) n = FORECAST_DAYS;
+
+    ESP_LOGI(TAG, "=== 7-day forecast (up to %d days) ===", n);
+    for (int i = 0; i < n; ++i) {
+        cJSON *ti = cJSON_GetArrayItem(times, i);
+        cJSON *tm = cJSON_GetArrayItem(temp_max, i);
+        cJSON *rp = cJSON_GetArrayItem(rain_prob, i);
+        cJSON *wc = cJSON_GetArrayItem(weathercode, i);
+
+        const char *date = (cJSON_IsString(ti) && ti->valuestring) ? ti->valuestring : "N/A";
+        double tmax = cJSON_IsNumber(tm) ? tm->valuedouble : 0.0;
+        double rprob= cJSON_IsNumber(rp) ? rp->valuedouble : 0.0;
+        int wcode   = cJSON_IsNumber(wc) ? wc->valueint   : 0;
+
+        ESP_LOGI(TAG, "[%d] %s | Tmax=%.1f C | Rain=%.1f %% | code=%d",
+                 i, date, tmax, rprob, wcode);
+
+        // TODO: nếu cần, copy dữ liệu vào struct/array để đẩy ra TFT hay lưu file nhị phân
     }
 
     cJSON_Delete(json);

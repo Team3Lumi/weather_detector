@@ -1,8 +1,13 @@
-#include "include_dir.h"
+#include "http.h"
+#include "Wifi.h"
+#include "spiffs_store.h"
+#include <stdio.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_log.h"
 
-static const char *TAG = "wifi_sta";
-
-static void weather_task(void *arg) {
+static const char *TAG = "MAIN";
+static void fetch_task(void *arg) {
     get_weather_forecast();
     vTaskDelete(NULL);
 }
@@ -14,7 +19,20 @@ app_main(void){
     // 1. Kết nối Wi-Fi
     wifi_init_sta();
 
-    // 3. Khởi động task HTTP
-    //http_start_task();
-    xTaskCreate(weather_task, "weather", 10 * 1024, NULL, 5, NULL);
+    if (spiffs_init() == ESP_OK) {
+        // 3) Thử đọc cache và hiển thị ngay
+        char *cached = NULL; size_t clen = 0;
+        if (spiffs_load_json(&cached, &clen) == ESP_OK) {
+            cJSON *json = cJSON_ParseWithLength(cached, clen);
+            if (json) {
+                // TODO: rút trích daily & vẽ TFT ngay lập tức
+                cJSON_Delete(json);
+            }
+            free(cached);
+        }
+    }
+
+    // 4) Tạo task cập nhật mới từ Internet (stack 10–12 KB)
+    xTaskCreate(fetch_task, "fetch", 12*1024, NULL, 5, NULL);
+
 }
