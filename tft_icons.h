@@ -1,15 +1,17 @@
-#pragma once
+#ifndef ICONS_H
+#define ICONS_H
+
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+typedef struct {
+    const uint32_t *data;
+    uint16_t width;
+    uint16_t height;
+    uint8_t  dataSize;
+} tImage;
 
-// Vẽ biểu tượng thời tiết ở (x,y) với kích thước cơ bản (scale=1,2..)
-void tft_icon_sunny(int16_t x, int16_t y, int scale);
-void tft_icon_cloudy(int16_t x, int16_t y, int scale);
-void tft_icon_rain(int16_t x, int16_t y, int scale);
+extern const tImage sun1;
+extern const tImage clouds;
+extern const tImage rainy;
 
-#ifdef __cplusplus
-}
-#endif
+#endif // ICONS_H
