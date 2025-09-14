@@ -1,0 +1,146 @@
+GIÁO TRÌNH DỰ ÁN: TRẠM THỜI TIẾT DÙNG ESP32
+
+---
+
+### LỜI NÓI ĐẦU
+
+Tài liệu này cung cấp một cái nhìn tổng quan chi tiết và khoa học về các kiến thức cần thiết để xây dựng một dự án IoT hoàn chỉnh: Trạm dự báo thời tiết sử dụng vi điều khiển ESP32. Mục tiêu là hệ thống hóa kiến thức từ phần cứng, môi trường phát triển, hệ điều hành thời gian thực, cho đến các giao thức mạng và xử lý dữ liệu.
+
+---
+
+### CHƯƠNG 1: TỔNG QUAN DỰ ÁN VÀ PHẦN CỨNG
+
+#### 1.1. Mục tiêu dự án
+- Xây dựng một thiết bị nhúng có khả năng kết nối Internet để lấy dữ liệu thời tiết.
+- Hiển thị dữ liệu dự báo cho nhiều ngày trên màn hình màu TFT.
+- Cho phép người dùng tương tác với thiết bị thông qua các nút bấm.
+- Ứng dụng các khái niệm cốt lõi trong lập trình nhúng và IoT.
+
+#### 1.2. Linh kiện phần cứng chính
+1.  **Vi điều khiển ESP32:**
+    - Là "bộ não" của hệ thống.
+    - Tích hợp sẵn Wi-Fi và Bluetooth, rất lý tưởng cho các ứng dụng IoT.
+    - CPU lõi kép mạnh mẽ, cho phép xử lý đồng thời nhiều tác vụ (ví dụ: vừa kết nối mạng, vừa xử lý giao diện).
+
+2.  **Màn hình TFT ST7735 1.8-inch:**
+    - Màn hình màu tinh thể lỏng (TFT LCD) để hiển thị giao diện người dùng (UI).
+    - Giao tiếp với ESP32 qua giao thức SPI (Serial Peripheral Interface), một chuẩn giao tiếp nối tiếp tốc độ cao.
+
+3.  **Nút bấm (Push Buttons):**
+    - Là phương tiện để người dùng tương tác, điều khiển thiết bị (chuyển ngày dự báo).
+    - Được kết nối với các chân GPIO (General-Purpose Input/Output) của ESP32.
+
+---
+
+### CHƯƠNG 2: MÔI TRƯỜNG PHÁT TRIỂN VÀ BỘ CÔNG CỤ (TOOLCHAIN)
+
+#### 2.1. ESP-IDF (Espressif IoT Development Framework)
+- Là bộ công cụ phát triển phần mềm (SDK) chính thức từ nhà sản xuất Espressif.
+- Cung cấp các thư viện, API, và công cụ cần thiết để lập trình cho ESP32 bằng ngôn ngữ C/C++.
+- Bao gồm driver cho các ngoại vi (GPIO, SPI), các thành phần hệ thống (RTOS, Wi-Fi), và các giao thức mạng (TCP/IP, HTTP).
+
+#### 2.2. Hệ thống Build (CMake)
+- ESP-IDF sử dụng CMake để quản lý quá trình biên dịch mã nguồn.
+- File `CMakeLists.txt` định nghĩa các tệp nguồn, các thành phần phụ thuộc, và các cờ biên dịch cho dự án.
+
+#### 2.3. Quá trình nạp chương trình (Flashing)
+- Sau khi biên dịch, mã máy được nạp vào bộ nhớ flash của ESP32 thông qua kết nối USB-to-UART.
+- Công cụ `esptool.py` (tích hợp trong ESP-IDF) chịu trách nhiệm cho quá trình này.
+
+---
+
+### CHƯƠNG 3: HỆ ĐIỀU HÀNH THỜI GIAN THỰC (FREERTOS)
+
+ESP-IDF được xây dựng trên nền tảng FreeRTOS. Việc sử dụng RTOS là cực kỳ quan trọng trong các dự án phức tạp.
+
+#### 3.1. Task (Tác vụ)
+- Một tác vụ là một luồng thực thi độc lập. Dự án này sử dụng các task để phân chia công việc:
+  - `main_task` (trong `app_main`): Khởi tạo hệ thống.
+  - `fetch_task`: Tác vụ riêng để thực hiện việc kết nối mạng và tải dữ liệu. Việc này ngăn chặn giao diện người dùng bị "đơ" trong khi chờ đợi mạng.
+  - `btn_task`: Tác vụ riêng để lắng nghe sự kiện từ nút bấm.
+
+#### 3.2. Queue (Hàng đợi)
+- Là cơ chế giao tiếp giữa các task. Trong dự án:
+  - Khi một nút được nhấn, một ngắt (ISR) sẽ gửi một sự kiện vào một hàng đợi (`s_btn_q`).
+  - `btn_task` sẽ "chờ" trên hàng đợi này. Khi có sự kiện, nó sẽ được đánh thức để xử lý.
+- Điều này giúp tách biệt giữa việc phát hiện sự kiện (ngắt) và xử lý sự kiện (task).
+
+#### 3.3. Event Group
+- Dùng để đồng bộ hóa trạng thái giữa các task. Trong dự án:
+  - `s_wifi_event_group` được dùng để báo hiệu trạng thái kết nối Wi-Fi. Task chính sẽ chờ cho đến khi bit `WIFI_CONNECTED_BIT` được bật lên trước khi thực hiện các tác vụ mạng.
+
+---
+
+### CHƯƠNG 4: GIAO TIẾP NGOẠI VI
+
+#### 4.1. GPIO (General-Purpose Input/Output)
+- **Input:** Dùng để đọc trạng thái của các nút bấm. Cấu hình ở chế độ `input pull-up` để tránh nhiễu và không cần điện trở kéo lên bên ngoài.
+- **Ngắt GPIO (Interrupt):** Thay vì liên tục hỏi "nút có được nhấn không?" (polling), ta cấu hình ngắt để CPU chỉ bị gián đoạn khi có sự kiện nhấn nút. Điều này hiệu quả hơn nhiều.
+- **Output:** Dùng để điều khiển đèn nền (backlight) của màn hình.
+
+#### 4.2. SPI (Serial Peripheral Interface)
+- Là giao thức được sử dụng để gửi dữ liệu từ ESP32 đến màn hình ST7735.
+- ESP-IDF cung cấp driver SPI để lập trình viên không cần phải thao tác trực tiếp với các thanh ghi phần cứng.
+- `lcd.c` là một lớp thư viện trừu tượng hóa, cung cấp các hàm đồ họa dễ sử dụng (`LCD_DrawPoint`, `LCD_ShowString`,...) dựa trên driver SPI cấp thấp.
+
+---
+
+### CHƯƠNG 5: GIAO THỨC MẠNG
+
+#### 5.1. Wi-Fi Station (STA) Mode
+- ESP32 được cấu hình ở chế độ Station để kết nối vào một điểm truy cập (Access Point - AP) Wi-Fi đã có sẵn (router của bạn).
+- Thư viện Wi-Fi của ESP-IDF quản lý toàn bộ quá trình quét mạng, kết nối và xử lý mất kết nối.
+
+#### 5.2. HTTP Client
+- Sau khi có kết nối Wi-Fi và địa chỉ IP, thiết bị sử dụng thư viện `esp_http_client` để gửi yêu cầu HTTP GET đến máy chủ API (api.open-meteo.com).
+- Yêu cầu này chứa vĩ độ, kinh độ và các thông số thời tiết cần lấy.
+
+#### 5.3. HTTPS và Certificates
+- API thời tiết sử dụng HTTPS (HTTP qua TLS/SSL) để bảo mật. `esp_http_client` hỗ trợ HTTPS.
+- `esp_crt_bundle_attach` được dùng để cung cấp cho client một danh sách các chứng chỉ số (certificates) gốc đáng tin cậy, cho phép nó xác thực danh tính của máy chủ API.
+
+---
+
+### CHƯƠNG 6: QUẢN LÝ DỮ LIỆU
+
+#### 6.1. JSON (JavaScript Object Notation)
+- API trả về dữ liệu dưới dạng chuỗi JSON, một định dạng văn bản có cấu trúc rất phổ biến.
+- Thư viện `cJSON` được sử dụng để phân tích (parse) chuỗi JSON này, trích xuất các giá trị cần thiết như nhiệt độ, ngày tháng, mã thời tiết.
+
+#### 6.2. SPIFFS (SPI Flash File System)
+- Là một hệ thống tệp được thiết kế cho bộ nhớ flash SPI.
+- Trong dự án, SPIFFS được dùng để tạo một bộ đệm (cache). Sau khi tải dữ liệu thời tiết thành công, nó được lưu vào một tệp (`/spiffs/forecast.json`).
+- Lợi ích: Khi thiết bị khởi động lại, nó có thể đọc ngay dữ liệu từ cache để hiển thị mà không cần phải chờ kết nối mạng, giúp cải thiện trải nghiệm người dùng.
+
+---
+
+### CHƯƠNG 7: LOGIC ỨNG DỤNG VÀ GIAO DIỆN
+
+#### 7.1. Luồng hoạt động chính (`main.c`)
+1.  Khởi tạo Wi-Fi và SPIFFS.
+2.  Khởi tạo các nút bấm và màn hình TFT.
+3.  Cố gắng đọc và hiển thị dữ liệu từ cache SPIFFS (nếu có).
+4.  Tạo `btn_task` để xử lý sự kiện nhấn nút (chuyển ngày).
+5.  Tạo `fetch_task` để cập nhật dữ liệu mới từ API.
+
+#### 7.2. Quản lý trạng thái
+- Một mảng toàn cục `g_days[]` lưu trữ dữ liệu dự báo đang được hiển thị.
+- Biến `g_index` theo dõi ngày hiện tại đang được xem.
+- Khi `fetch_task` có dữ liệu mới, nó sẽ cập nhật mảng `g_days` này.
+
+#### 7.3. Vẽ giao diện (`tft_display.c`)
+- Hàm `tft_render_day()` chịu trách nhiệm vẽ toàn bộ giao diện cho một ngày cụ thể.
+- Nó gọi các hàm con để vẽ từng phần: header, icon, và các thông tin văn bản.
+- Việc tách riêng logic vẽ giúp mã nguồn trở nên sạch sẽ và dễ bảo trì.
+
+---
+
+### CHƯƠNG 8: KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN
+
+Dự án này là một ví dụ điển hình, bao quát gần như toàn bộ các kỹ năng cần có của một lập trình viên IoT: từ xử lý phần cứng cấp thấp, sử dụng hệ điều hành thời gian thực, kết nối mạng, cho đến xử lý dữ liệu và xây dựng giao diện người dùng.
+
+**Các hướng cải tiến:**
+- Thêm màn hình cài đặt Wi-Fi (sử dụng chế độ SoftAP).
+- Lấy dữ liệu thời gian thực từ NTP server để hiển thị đồng hồ.
+- Thêm các cảm biến môi trường thực tế (nhiệt độ, độ ẩm) và gửi dữ liệu lên một nền tảng IoT (cloud).
+- Tối ưu hóa năng lượng để chạy bằng pin.
