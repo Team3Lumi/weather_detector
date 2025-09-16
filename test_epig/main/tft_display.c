@@ -7,12 +7,15 @@
 #include "tft_display.h"    // tft_day_t, prototype
 #include "icons.h"       // biểu tượng thời tiết
 
+/*
 #ifndef LCD_W
 #define LCD_W 160           // fallback cho ST7735 160x128
 #endif
 #ifndef LCD_H
 #define LCD_H 128
 #endif
+
+
 
 // fallback màu nếu lcd.h chưa định nghĩa
 #ifndef BLACK
@@ -33,6 +36,7 @@
 #ifndef BLUE
 #define BLUE  0x001F
 #endif
+*/
 
 // gói gọi ShowString để tránh cảnh báo -Wpointer-sign
 #pragma GCC diagnostic push
@@ -68,9 +72,9 @@ static void draw_header(const tft_day_t *d)
 {
     // header bar
     const int H = 22;
-    for (int y = 0; y < H; ++y) LCD_DrawLine(0, y, LCD_W - 1, y, 0x0015); // xanh đậm
+    for (int y = 0; y < H; ++y) LCD_DrawLine(0, y, LCD_W - 1, y, BLACK); // xanh đậm
     // ngày (YYYY-MM-DD)
-    TXT(6, 3, 0x0015, WHITE, d->day, 19, 0);
+    TXT(6, 3, GREEN, BLACK, d->day, 19, 0);
 }
 
 static void draw_separators(void)
@@ -151,12 +155,12 @@ void tft_render_day(const tft_day_t *d)
     const char *status =
         (d->icon == TFT_ICON_SUNNY)  ? "Sunny"  :
         (d->icon == TFT_ICON_CLOUDY) ? "Cloudy" : "Rain";
-    TXT(6, LCD_H - 28, BLACK, CYAN, "Status:", 16, 0);
-    TXT(58, LCD_H - 28, BLACK, CYAN, status, 16, 0);
+    TXT(6, LCD_H - 130, GREEN, BLACK, "Status:", 16, 0);
+    TXT(58, LCD_H - 130, GREEN, BLACK, status, 16, 0);
 
     // Nhiệt độ
     snprintf(buf, sizeof(buf), "Temp: %d C", d->temp_c);
-    TXT(6, LCD_H - 18, BLACK, 0x07E0 /*GREEN*/, buf, 16, 0);
+    TXT(6, LCD_H - 65, GREEN, BLACK, buf, 16, 0);
 
     // % mưa / ẩm (tuỳ struct của bạn)
     #ifdef TFT_DAY_HAS_RAIN_PCT
@@ -164,5 +168,5 @@ void tft_render_day(const tft_day_t *d)
     #else
       snprintf(buf, sizeof(buf), "Hum : %d %%", d->humidity_pct);
     #endif
-    TXT(6, LCD_H - 8, BLACK, BLUE, buf, 16, 0);
+    TXT(6, LCD_H - 15, GREEN, BLACK, buf, 16, 0);
 }
