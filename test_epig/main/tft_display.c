@@ -51,8 +51,8 @@ static void draw_header(const tft_day_t *d)
 static void draw_separators(void)
 {
     const int y1 = 23, y2 = LCD_H - 32;
-    LCD_DrawLine(0, y1, LCD_W - 1, y1, 0x39E7);
-    LCD_DrawLine(0, y2, LCD_W - 1, y2, 0x39E7);
+    LCD_DrawLine(0, y1, LCD_W - 1, y1, BLACK_OLIVE);
+    LCD_DrawLine(0, y2, LCD_W - 1, y2, BLACK_OLIVE);
 }
 
 
@@ -136,5 +136,6 @@ void tft_render_day(const tft_day_t *d)
     #endif
     TXT(6, LCD_H - 15, GREEN, BLACK, buf, 16, 0);
 }
+
 
 
