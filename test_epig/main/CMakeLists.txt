@@ -1,7 +1,4 @@
 set(TFT_SRCS
-    #"components/tft/cloud.c"
-    #"components/tft/rainy.c"
-    #"components/tft/sun.c"
     "components/tft/icons.c"   
     "components/tft/GUI.c"
     "components/tft/lcd.c"
@@ -26,3 +23,4 @@ idf_component_register(
     PRIV_REQUIRES
         json
 )
+
