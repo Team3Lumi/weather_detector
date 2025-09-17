@@ -1,10 +1,9 @@
 #ifndef WIFI_H
 #define WIFI_H
 
-// Tên mạng Wi-Fi (SSID)
+
 #define WIFI_SSID      "KTTH 2"
 
-// Mật khẩu Wi-Fi
 #define WIFI_PASS      "0983014568"
 
 #include "esp_err.h"
@@ -21,3 +20,4 @@
 void wifi_init_sta(void);
 
 #endif // WIFI_H
+
