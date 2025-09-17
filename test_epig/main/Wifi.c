@@ -98,12 +98,3 @@ wifi_init_sta(void)
                         portMAX_DELAY);
 }
 
-// void
-// app_main(void)
-// {
-//     ESP_LOGI(TAG, "ESP32 WiFi station example");
-//     wifi_init_sta();
-//     // Khi tới đây, ESP32 đã có IP, bạn có thể gọi HTTP/HTTPS...
-
-
-// }
