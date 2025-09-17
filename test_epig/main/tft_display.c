@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include "lcd.h"            // LCD_Init, LCD_Direction, LCD_Clear, LCD_DrawLine, LCD_ShowString,...
 #include "tft_display.h"    // tft_day_t, prototype
-#include "icons.h"       // biểu tượng thời tiết
+#include "icons.h"     
 
 
 
@@ -136,4 +136,5 @@ void tft_render_day(const tft_day_t *d)
     #endif
     TXT(6, LCD_H - 15, GREEN, BLACK, buf, 16, 0);
 }
+
 
