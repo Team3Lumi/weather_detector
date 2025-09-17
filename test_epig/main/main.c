@@ -8,7 +8,7 @@
 #include "driver/gpio.h"
 #include "esp_log.h"
 
-#include "lcd.h"    // dùng các primitive: LCD_DrawLine, LCD_ShowString, LCD_Clear, LCD_Direction, LCD_Init
+#include "lcd.h"    
 #include <stdint.h>
 #include "icons.h"
 #include "tft_display.h"
@@ -104,5 +104,6 @@ void app_main(void)
     // 4) Task nút + Task cập nhật HTTP
     xTaskCreate(btn_task,   "btn_task",   2048,   NULL, 5, NULL);
     xTaskCreate(fetch_task, "fetch_task", 12*1024, NULL, 5, NULL);
+
 
 }
