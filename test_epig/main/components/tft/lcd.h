@@ -82,6 +82,7 @@
 #define LIGHTGREEN     			0X841F
 #define LIGHTGRAY     			0XEF5B
 #define LGRAY 					0XC618
+#define BLACK_OLIVE				0x39E7
 
 #define LGRAYBLUE      			0XA651
 #define LBBLUE          		0X2B12
