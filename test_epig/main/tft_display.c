@@ -7,36 +7,7 @@
 #include "tft_display.h"    // tft_day_t, prototype
 #include "icons.h"       // biểu tượng thời tiết
 
-/*
-#ifndef LCD_W
-#define LCD_W 160           // fallback cho ST7735 160x128
-#endif
-#ifndef LCD_H
-#define LCD_H 128
-#endif
 
-
-
-// fallback màu nếu lcd.h chưa định nghĩa
-#ifndef BLACK
-#define BLACK 0x0000
-#endif
-#ifndef WHITE
-#define WHITE 0xFFFF
-#endif
-#ifndef RED
-#define RED   0xF800
-#endif
-#ifndef CYAN
-#define CYAN  0x07FF
-#endif
-#ifndef YELLOW
-#define YELLOW 0xFFE0
-#endif
-#ifndef BLUE
-#define BLUE  0x001F
-#endif
-*/
 
 // gói gọi ShowString để tránh cảnh báo -Wpointer-sign
 #pragma GCC diagnostic push
@@ -72,7 +43,7 @@ static void draw_header(const tft_day_t *d)
 {
     // header bar
     const int H = 22;
-    for (int y = 0; y < H; ++y) LCD_DrawLine(0, y, LCD_W - 1, y, BLACK); // xanh đậm
+    for (int y = 0; y < H; ++y) LCD_DrawLine(0, y, LCD_W - 1, y, BLACK); 
     // ngày (YYYY-MM-DD)
     TXT(6, 3, GREEN, BLACK, d->day, 19, 0);
 }
@@ -84,11 +55,6 @@ static void draw_separators(void)
     LCD_DrawLine(0, y2, LCD_W - 1, y2, 0x39E7);
 }
 
-#if 0 //cho phan nay vao icons.h
-const tImage sun = FatcowFarmFreshWeathersun;
-const tImage clouds = FatcowFarmFreshWeathercloudy;
-const tImage rainy = FatcowFarmFreshWeatherrain;
-#endif
 
 static void draw_bitmap(int cx, int cy, const tImage *img, int scale) {
     if (!img || scale <= 0) return;
@@ -170,3 +136,4 @@ void tft_render_day(const tft_day_t *d)
     #endif
     TXT(6, LCD_H - 15, GREEN, BLACK, buf, 16, 0);
 }
+
