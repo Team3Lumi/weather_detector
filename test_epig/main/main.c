@@ -57,34 +57,7 @@ static void btn_task(void *arg)
 
 void app_main(void)
 {
-//     wifi_init_sta();
-
-//     // Mount SPIFFS (nếu bạn chưa gọi trong nơi khác)
-//     spiffs_init();
-
-//     // 1) Đọc cache và hiển thị ngay
-//     if (forecast_load_from_spiffs(g_days, &g_count) == ESP_OK && g_count > 0) {
-//         tft_init();
-//         tft_set_rotation(1);
-//         tft_render_day(&g_days[0]);
-//     } else {
-//         tft_init();
-//         tft_set_rotation(1);
-//         tft_clear();
-//     }
-// // (2) Khởi tạo nút bấm + backlight
-//     ESP_ERROR_CHECK(buttons_init(PIN_BTN_BACK, PIN_BTN_NEXT, PIN_TFT_LED));
-
-//     // (3) Tạo task nhận sự kiện nút
-//     xTaskCreate(btn_task, "btn_task", 2048, NULL, 5, NULL);
-
-//     // (4) (tuỳ chọn) bật/tắt backlight lúc rảnh
-//     //buttons_set_backlight(true);
-
-//     // 2) Tạo task cập nhật từ Internet (tự lưu cache + trả mảng)
-//     xTaskCreate(fetch_task, "fetch", 12*1024, NULL, 5, NULL);
-
-// 0) Wi-Fi + SPIFFS
+    // 0) Wi-Fi + SPIFFS
     wifi_init_sta();
     spiffs_init();
 
@@ -107,3 +80,4 @@ void app_main(void)
 
 
 }
+
